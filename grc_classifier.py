@@ -1,105 +1,120 @@
 import rasterio
 import numpy as np
+from pyproj import Transformer
 
-GEOTIFF_FILE_PATH = r'C:\Users\rtldd\Documents\P2MI\GRC.tif' 
+GEOTIFF_FILE_PATH = r'C:\Users\rtldd\Documents\P2MI\GRC_IDN.tif'
+
 
 class _GRC_Engine:
     """
-    Class untuk load dan save data population density GRC
+    Class for loading Ground Risk Class (GRC) dari GeoTIFF.
+    GeoTIFF, from CRS ESRI:54009 (Mollweide) into lat/lon convert first to CRS before indexing raster.
     """
+
     def __init__(self, geotiff_path):
         self.grc_map_array = None
         self.transform = None
-        
-        try:
+        self.crs = None
+        self.transformer = None
 
+        try:
             with rasterio.open(geotiff_path) as src:
-                self.grc_map_array = src.read(1) # Baca data (GRC 0-6)
-                self.transform = src.transform   # Save konversi
+                # Load raster data
+                self.grc_map_array = src.read(1)
+                self.transform = src.transform
+                self.crs = src.crs
+
+                # Transformer WGS84 (EPSG:4326) → CRS raster (ESRI:54009)
+                self.transformer = Transformer.from_crs(
+                    "EPSG:4326",
+                    src.crs,
+                    always_xy=True  # ensures using x=lon, y=lat
+                )
+
             print("GRC loaded.")
-        
+
         except Exception as e:
-            print(f"ERROR: Gagal memuat file GeoTIFF '{geotiff_path}'.")
+            print(f"ERROR: Failed to load file GeoTIFF '{geotiff_path}'. Error: {e}")
 
     def _map_to_final_grc(self, igrc_value):
         """
-        Memetakan nilai iGRC (0-6) ke Final GRC berdasarkan
-        kolom kecepatan < 35 m/s (27.78 m/s) pada tabel SORA.
+        Classifying iGRC (0–6) to Final GRC based on SORA.
         """
-        # Dictionary pemetaan sesuai permintaan Anda
         grc_map = {
-            0: 1,  # iGRC 0 -> Final GRC 1
-            1: 3,  # iGRC 1 -> Final GRC 3
-            2: 4,  # iGRC 2 -> Final GRC 4
-            3: 5,  # iGRC 3 -> Final GRC 5
-            4: 6,  # iGRC 4 -> Final GRC 6
-            5: 7,  # iGRC 5 -> Final GRC 7
-            6: 8   # iGRC 6 -> Final GRC 8
+            0: 1,
+            1: 3,
+            2: 4,
+            3: 5,
+            4: 6,
+            5: 7,
+            6: 8
         }
-        return grc_map.get(igrc_value, None) # Kembalikan None jika nilai tidak ada di map
+        return grc_map.get(igrc_value, None)
 
     def get_grc(self, lat, lon):
         """
-        Ambil (lat, lon) dan return Final GRC.
+        get Final GRC value based on lat/lon (derajat).
+        Convert to CRS raster (ESRI:54009) before indexing.
         """
-        # 1. Cek inisialisasi
+
         if self.grc_map_array is None:
-            print("Error: GRC tidak dimuat.")
+            print("Error: Raster GRC didn't load.")
             return None
 
         try:
-            # 2. Konversi (Lat, Lon) -> (baris, kolom)
-            row, col = ~self.transform * (lat, lon)
+            # 1. Convert lon/lat from EPSG:4326 → Mollweide (meter)
+            x, y = self.transformer.transform(lon, lat)
+
+            # 2. Convert Mollweide → index pixel raster
+            col, row = ~self.transform * (x, y)
             row, col = int(row), int(col)
-            print(row, col)
-            
-            # 3. Ambil nilai iGRC (0-6) mentah dari peta
+
+            print(f"Pixel location → Row: {row}, Col: {col}")
+
+            # 3. Check bounds raster
+            if row < 0 or col < 0 or row >= self.grc_map_array.shape[0] or col >= self.grc_map_array.shape[1]:
+                print(f"Warning: Position ({lat}, {lon}) is out of bound.")
+                return None
+
+            # 4. iGRC value
             igrc_raw = int(self.grc_map_array[row, col])
-            
-            # 4. Petakan ke Final GRC
-            final_grc = self._map_to_final_grc(igrc_raw)
-            
-            return final_grc
+
+            # 5. Mapping iGRC → Final GRC
+            return self._map_to_final_grc(igrc_raw)
 
         except Exception as e:
-            # Error ini biasanya terjadi jika (lat, lon) berada di luar jangkauan (boundaries) file GeoTIFF.
-            print(f"Warning: Posisi ({lat}, {lon}) di luar jangkauan peta. {e}")
+            print(f"ERROR saat membaca GRC untuk ({lat}, {lon}): {e}")
             return None
 
-# ==============================================================================
-# 1. INISIALISASI MESIN GRC (Dijalankan satu kali saat file di-import)
+
+# ========================================================================
+# Inisialisasi mesin GRC
 grc_engine = _GRC_Engine(GEOTIFF_FILE_PATH)
 
 
-# ==============================================================================
-# 2. Ambil koordinat, return Final GRC
+# ========================================================================
+# Fungsi wrapper agar lebih mudah dipanggil
 def final_grc(lat, lon):
     if grc_engine:
         return grc_engine.get_grc(lat, lon)
     return None
 
-# ==============================================================================
-# 3. TEST CASE
+
+# ========================================================================
+# Test
 if __name__ == "__main__":
-    # Gunakan koordinat yang Anda tahu pasti ada di dalam peta Anda.
-    test_lat_1 = -6.917464 # Ganti dengan Lat Anda
-    test_lon_1 = 107.619125 # Ganti dengan Lon Anda (misal, area iGRC 3)
+    # Bandung
+    lat1 = -6.917464
+    lon1 = 107.619125
 
-    test_lat_2 = -6.258351632715808 # Ganti dengan Lat Anda
-    test_lon_2 = 106.83125543446322 # Ganti dengan Lon Anda (misal, area iGRC 6)
+    # Jakarta
+    lat2 = -6.2583516327
+    lon2 = 106.8312554344
 
-    test_lat_luar_peta = 0
-    test_lon_luar_peta = 0
-    # ----------------------------------------
-    
-    # Tes 1
-    final_grc_1 = final_grc(test_lat_1, test_lon_1)
-    print(f"Tes Posisi 1 ({test_lat_1}, {test_lon_1}) -> Final GRC: {final_grc_1}")
+    # Di luar Indonesia (harus None)
+    lat3 = 0
+    lon3 = 0
 
-    # Tes 2
-    final_grc_2 = final_grc(test_lat_2, test_lon_2)
-    print(f"Tes Posisi 2 ({test_lat_2}, {test_lon_2}) -> Final GRC: {final_grc_2}")
-
-    # Tes 3 (Di luar Peta)
-    final_grc_3 = final_grc(test_lat_luar_peta, test_lon_luar_peta)
-    print(f"Tes Posisi 3 ({test_lat_luar_peta}, {test_lon_luar_peta}) -> Final GRC: {final_grc_3}")
+    print("Tes 1:", final_grc(lat1, lon1))
+    print("Tes 2:", final_grc(lat2, lon2))
+    print("Tes 3:", final_grc(lat3, lon3))
