@@ -2,7 +2,7 @@ import rasterio
 import numpy as np
 from pyproj import Transformer
 
-GEOTIFF_FILE_PATH = r'C:\Users\rtldd\Documents\P2MI\GRC_IDN.tif'
+GEOTIFF_FILE_PATH = r'c:\Users\bevan\OneDrive - Institut Teknologi Bandung\S2-1\P2MI\GRC_IDN.tif'
 
 
 class _GRC_Engine:
@@ -34,7 +34,8 @@ class _GRC_Engine:
             print("GRC loaded.")
 
         except Exception as e:
-            print(f"ERROR: Failed to load file GeoTIFF '{geotiff_path}'. Error: {e}")
+            print(
+                f"ERROR: Failed to load file GeoTIFF '{geotiff_path}'. Error: {e}")
 
     def _map_to_final_grc(self, igrc_value):
         """
@@ -69,7 +70,7 @@ class _GRC_Engine:
             col, row = ~self.transform * (x, y)
             row, col = int(row), int(col)
 
-            print(f"Pixel location → Row: {row}, Col: {col}")
+            # print(f"Pixel location → Row: {row}, Col: {col}")
 
             # 3. Check bounds raster
             if row < 0 or col < 0 or row >= self.grc_map_array.shape[0] or col >= self.grc_map_array.shape[1]:
@@ -97,24 +98,3 @@ grc_engine = _GRC_Engine(GEOTIFF_FILE_PATH)
 def final_grc(lat, lon):
     if grc_engine:
         return grc_engine.get_grc(lat, lon)
-    return None
-
-
-# ========================================================================
-# Test
-if __name__ == "__main__":
-    # Bandung
-    lat1 = -6.917464
-    lon1 = 107.619125
-
-    # Jakarta
-    lat2 = -6.2583516327
-    lon2 = 106.8312554344
-
-    # Di luar Indonesia (harus None)
-    lat3 = 0
-    lon3 = 0
-
-    print("Tes 1:", final_grc(lat1, lon1))
-    print("Tes 2:", final_grc(lat2, lon2))
-    print("Tes 3:", final_grc(lat3, lon3))
