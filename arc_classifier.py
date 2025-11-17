@@ -1,8 +1,10 @@
-from __future__ import annotations
+# from _future_ import annotations
 from typing import List, Tuple, Dict
 import xml.etree.ElementTree as ET
 
 # ---------- KML utilities ----------
+
+
 def parse_kml_polygons(kml_path: str) -> List[List[Tuple[float, float]]]:
     # Define the namespace used in your file
     ns = {"kml": "http://www.opengis.net/kml/2.2"}
@@ -35,6 +37,29 @@ def parse_kml_polygons(kml_path: str) -> List[List[Tuple[float, float]]]:
 
     return out
 
+
+'''
+def parse_kml_polygons(kml_path: str) -> List[List[Tuple[float, float]]]:
+    root = ET.parse(kml_path).getroot()
+    polygons = root.findall(".//{*}Polygon")
+    out: List[List[Tuple[float, float]]] = []
+    for poly in polygons:
+        coords_el = poly.find(
+            ".//{}outerBoundaryIs//{}LinearRing//{*}coordinates")
+        if coords_el is None or not (coords_el.text and coords_el.text.strip()):
+            continue
+        ring = []
+        for triplet in coords_el.text.replace("\n", " ").split():
+            parts = triplet.split(",")
+            if len(parts) >= 2:
+                lon, lat = float(parts[0]), float(parts[1])
+                ring.append((lon, lat))
+        if len(ring) >= 3:
+            out.append(ring)
+    return out
+'''
+
+
 def point_in_polygon(lon: float, lat: float, poly: List[Tuple[float, float]]) -> bool:
     inside = False
     n = len(poly)
@@ -45,76 +70,68 @@ def point_in_polygon(lon: float, lat: float, poly: List[Tuple[float, float]]) ->
             inside = not inside
     return inside
 
+
 def point_in_any(lon: float, lat: float, polygons: List[List[Tuple[float, float]]]) -> bool:
     return any(point_in_polygon(lon, lat, p) for p in polygons)
 
 
 # ---------- ARC classification logic ----------
-def air_risk(
-    lat: float,
-    lon: float,
-    altitude_m: float,
-    *,
-    # provisional context inputs (set constants for now)
-    in_mode_c_tmz: bool = False,
-    in_controlled: bool = False,
-    population_class: int = 2,   # 1–2=rural, 3–5=urban (temporary generalization)
-) -> Tuple[str, Dict[str, str]]:
+def air_risk(lat: float, lon: float, altitude_m: float, grc) -> Tuple[str, Dict[str, str]]:
     """
-    Returns (ARC, details) following your flowchart,
-    using Halim/Soetta polygons for the airport/heliport branch,
-    and simple flags for Mode-C/TMZ, controlled, and urban/rural.
+    Main callable function.
+    Input:
+        - lat, lon, altitude_m
+    Output:
+        - ARC classification string ("ARC-b", "ARC-c", etc.)
+        - reasoning dictionary
     """
-    HALIM = r"C:\Users\HP\Documents\ITB\Chapter 4\P2MI\Halim ATZ.kml"
-    SOETTA = r"C:\Users\HP\Documents\ITB\Chapter 4\P2MI\Soetta ATZ.kml"
 
-    halim_polys  = parse_kml_polygons(HALIM)
+    # Set your KML paths here once
+    HALIM = r"C:\Users\bevan\OneDrive - Institut Teknologi Bandung\S2-1\PDP\XPC\Halim ATZ.kml"
+    SOETTA = r"C:\Users\bevan\OneDrive - Institut Teknologi Bandung\S2-1\PDP\XPC\Soetta ATZ.kml"
+
+    halim_polys = parse_kml_polygons(HALIM)
     soetta_polys = parse_kml_polygons(SOETTA)
     in_controlled = False
+    # Step 2: location
 
-    # --- Step 2: airport/heliport environment overrides ---
-    if point_in_any(lon, lat, halim_polys):
-        in_controlled = True
-        return "ARC-d", {"rule": "OPS in Airport/Heliport env. → Class B/C/D (Halim) → ARC-d"}
-    if point_in_any(lon, lat, soetta_polys):
-        in_controlled = True
-        return "ARC-c", {"rule": "OPS in Airport/Heliport env. → Class A (Soetta) → ARC-c"}
-
-        # --- Step 3: altitude branches (revised to follow flowchart) ---
-    FT_TO_M  = 0.3048
-    FL600_m  = 60000 * FT_TO_M      # ≈ 18,288 m
-    FT500_m  = 500 * FT_TO_M        # ≈ 152.4 m
+    # --- Step 3: altitude branches (revised to follow flowchart) ---
+    FT_TO_M = 0.3048
+    FL600_m = 60000 * FT_TO_M      # ≈ 18,288 m
+    FT500_m = 500 * FT_TO_M        # ≈ 152.4 m
     a = altitude_m
 
     # temporary constants (until you load real data later)
-    in_mode_c_tmz = False
-    population_class = 2  # 1–2 = rural, 3–5 = urban
-    is_urban = population_class >= 3
 
-    # > FL600
-    if a > FL600_m:
-        return "ARC-b", {"rule": "OPS > FL600 → ARC-b"}
+    # population_class = 2  # 1–2 = rural, 3–5 = urban
 
+    is_urban = grc >= 6
+    if point_in_any(lon, lat, halim_polys):
+        in_controlled = True
+        arc_label = "ARC-d"
+        return in_controlled, arc_label, 3, {"rule": "Inside Halim (treated as Class C) → ARC-d"}
+    elif point_in_any(lon, lat, soetta_polys):
+        in_controlled = True
+        arc_label = "ARC-c"
+        return in_controlled, arc_label, 2, {"rule": "Inside Soetta (Class A) → ARC-c"}
+    elif a > FL600_m:
+        arc_label = "ARC-b"
+        in_controlled = False
+        return in_controlled, arc_label, 1, {"rule": "OPS > FL600 → ARC-b"}
     # 500 ft < a < FL600
-    if FT500_m < a < FL600_m:
-        if in_mode_c_tmz or in_controlled:
-            return "ARC-d", {"rule": "500 ft < OPS < FL600 AND (Mode-C/TMZ or Controlled) → ARC-d"}
+    elif FT500_m < a < FL600_m:
+        if in_controlled:
+            arc_label = "ARC-d"
+            return in_controlled, arc_label, 3, {"rule": "500 ft < OPS < FL600 AND Controlled → ARC-d"}
         else:
             # uncontrolled, urban or rural → ARC-c (generalized)
-            return "ARC-c", {"rule": "500 ft < OPS < FL600 in Uncontrolled Airspace → ARC-c"}
-
+            arc_label = "ARC-c"
+            return in_controlled, arc_label, 2, {"rule": "500 ft < OPS < FL600 in Uncontrolled Airspace → ARC-c"}
     # OPS ≤ 500 ft
-    if a <= FT500_m:
-        if in_mode_c_tmz or in_controlled or is_urban:
-            return "ARC-c", {"rule": "OPS ≤ 500 ft AND (Mode-C/TMZ or Controlled or Urban) → ARC-c"}
+    elif a <= FT500_m:
+        if in_controlled or is_urban:
+            arc_label = "ARC-c"
+            return in_controlled, arc_label, 2, {"rule": "OPS ≤ 500 ft AND Controlled or Urban → ARC-c"}
         else:
-            return "ARC-b", {"rule": "OPS ≤ 500 ft in Uncontrolled Rural Area → ARC-b"}
-
-# ---------- Example usage ----------
-if __name__ == "__main__":
-    # Example 1: Halim
-    print(air_risk(-6.2660, 106.8915, 80.0))
-    # Example 2: Soetta
-    print(air_risk(-6.130062, 106.649063, 90.0))
-    # Example 3: Rural
-    print(air_risk(-6.3478, 106.5612, 1100.0))
+            arc_label = "ARC-b"
+            return in_controlled, arc_label, 1, {"rule": "OPS ≤ 500 ft in Uncontrolled Rural Area → ARC-b"}
