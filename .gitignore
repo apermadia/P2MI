@@ -3,3 +3,6 @@ Undangan_Rapat.docx
 ~$621009_Amadea Nauraleza Permadi_Project Report (P2MI).docx
 13621009_Amadea Nauraleza Permadi_Project Report (P2MI)_signed.pdf
 13621019_Amadea Nauraleza Permadi_Form data Honor.xlsx
+__pycache__/
+*.pyc
+flight_log_*.csv
