@@ -4,14 +4,24 @@ import xpc
 import arc_classifier
 from datetime import datetime
 import grc_classifier
+import plotting as plt
+import os
+
+# Folder name
+save_folder = "logs"
+
+# Create folder if not exists
+os.makedirs(save_folder, exist_ok=True)
+
 
 UPDATE_RATE_HZ = 2
 PERIOD = 1 / UPDATE_RATE_HZ
 
-client = xpc.XPlaneConnect(xpHost='192.168.10.1', xpPort=49009)
+client = xpc.XPlaneConnect(xpHost='localhost', xpPort=49009)
 print("Connected to X-Plane")
 
-filename = f"flight_log_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+filename = os.path.join(
+    save_folder, f"flight_log_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv")
 
 csv_file = open(filename, "w", newline="", encoding="utf-8")
 writer = csv.writer(csv_file)
@@ -45,7 +55,7 @@ try:
         print(f"t={t_now:6.2f}s | {lat:.6f}, {lon:.6f}, {alt:.1f} m, grc={grc_final}, "
               f"{hdg:.1f}°, {spd:.1f} m/s, {arc_label} ({reason['rule']})",
               end='\r', flush=True)
-
+        plt.update_dashboard(t_now, arc, grc_final, reason['rule'], arc_label)
         time.sleep(PERIOD)
 
 except KeyboardInterrupt:
