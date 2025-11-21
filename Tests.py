@@ -6,6 +6,7 @@ from datetime import datetime
 import grc_classifier
 import plotting as plt
 import os
+import RealTimeKML
 
 # Folder name
 save_folder = "logs"
@@ -29,6 +30,7 @@ writer.writerow(["t_sec", "lat", "lon", "alt_m", "hdg_deg",
                 "spd_mps", "grc", "arc_label", "arc", "arc_rule"])
 
 print(f"Logging to {filename}")
+kml = RealTimeKML.RealTimeKML()
 
 # --- Start time reference (t=0) ---
 t0 = time.time()
@@ -45,12 +47,17 @@ try:
         in_ctrl, arc_label, arc, reason = arc_classifier.air_risk(
             lat, lon, alt, grc_final)
 
+        kml.add_point(lat, lon, alt)
+
+
         # --- Time starts from zero ---
         t_now = time.time() - t0
 
         writer.writerow([t_now, lat, lon, alt, hdg,
                         spd, grc_final, arc_label, arc, reason["rule"]])
         csv_file.flush()
+
+
 
         print(f"t={t_now:6.2f}s | {lat:.6f}, {lon:.6f}, {alt:.1f} m, grc={grc_final}, "
               f"{hdg:.1f}°, {spd:.1f} m/s, {arc_label} ({reason['rule']})",
@@ -67,11 +74,13 @@ except Exception as e:
 finally:
     try:
         csv_file.close()
+        kml.save_kml()
     except:
         pass
 
     try:
         client.close()
+        kml.save_kml()
     except:
         pass
 
