@@ -2,7 +2,7 @@ import rasterio
 import numpy as np
 from pyproj import Transformer
 
-GEOTIFF_FILE_PATH = r'c:\Users\bevan\OneDrive - Institut Teknologi Bandung\S2-1\P2MI\GRC_IDN.tif'
+GEOTIFF_FILE_PATH ='GRC_IDN_Compresssed.tif'
 
 
 class _GRC_Engine:
