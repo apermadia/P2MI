@@ -80,7 +80,6 @@ finally:
 
     try:
         client.close()
-        kml.save_kml()
     except:
         pass
 
