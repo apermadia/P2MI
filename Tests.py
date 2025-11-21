@@ -18,7 +18,7 @@ os.makedirs(save_folder, exist_ok=True)
 UPDATE_RATE_HZ = 2
 PERIOD = 1 / UPDATE_RATE_HZ
 
-client = xpc.XPlaneConnect(xpHost='localhost', xpPort=49009)
+client = xpc.XPlaneConnect(xpHost='192.168.10.2', xpPort=49009)
 print("Connected to X-Plane")
 
 filename = os.path.join(

@@ -87,8 +87,8 @@ def air_risk(lat: float, lon: float, altitude_m: float, grc) -> Tuple[str, Dict[
     """
 
     # Set your KML paths here once
-    HALIM = r"C:\Users\bevan\OneDrive - Institut Teknologi Bandung\S2-1\PDP\XPC\Halim ATZ.kml"
-    SOETTA = r"C:\Users\bevan\OneDrive - Institut Teknologi Bandung\S2-1\PDP\XPC\Soetta ATZ.kml"
+    HALIM = "Halim ATZ.kml"
+    SOETTA = "Soetta ATZ.kml"
 
     halim_polys = parse_kml_polygons(HALIM)
     soetta_polys = parse_kml_polygons(SOETTA)
