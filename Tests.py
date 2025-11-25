@@ -18,7 +18,7 @@ os.makedirs(save_folder, exist_ok=True)
 UPDATE_RATE_HZ = 2
 PERIOD = 1 / UPDATE_RATE_HZ
 
-client = xpc.XPlaneConnect(xpHost='192.168.10.2', xpPort=49009)
+client = xpc.XPlaneConnect(xpHost='localhost', xpPort=49009, timeout=1000)
 print("Connected to X-Plane")
 
 filename = os.path.join(
@@ -49,15 +49,12 @@ try:
 
         kml.add_point(lat, lon, alt)
 
-
         # --- Time starts from zero ---
         t_now = time.time() - t0
 
         writer.writerow([t_now, lat, lon, alt, hdg,
                         spd, grc_final, arc_label, arc, reason["rule"]])
         csv_file.flush()
-
-
 
         print(f"t={t_now:6.2f}s | {lat:.6f}, {lon:.6f}, {alt:.1f} m, grc={grc_final}, "
               f"{hdg:.1f}°, {spd:.1f} m/s, {arc_label} ({reason['rule']})",
