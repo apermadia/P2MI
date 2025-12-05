@@ -14,7 +14,10 @@ save_folder = "logs"
 # Create folder if not exists
 os.makedirs(save_folder, exist_ok=True)
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 5217c311d848a2a202a7cb7432dba7bc9a61e620
 UPDATE_RATE_HZ = 2
 PERIOD = 1 / UPDATE_RATE_HZ
 

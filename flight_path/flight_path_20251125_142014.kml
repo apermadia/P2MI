@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2">
+    <Document id="1">
+        <Style id="4">
+            <LineStyle id="5">
+                <color>ffffff00</color>
+                <colorMode>normal</colorMode>
+                <width>4</width>
+            </LineStyle>
+        </Style>
+        <name>Log 20251125_142014</name>
+        <Placemark id="3">
+            <name>Flight Path</name>
+            <styleUrl>#4</styleUrl>
+            <LineString id="2">
+                <extrude>1</extrude>
+                <altitudeMode>absolute</altitudeMode>
+                <coordinates>106.67584991455078,-6.083559989929199,7.639801502227783 106.67585754394531,-6.083639621734619,2.0752482414245605 106.67585754394531,-6.083674430847168,3.2731761932373047 106.67585754394531,-6.083702087402344,3.079474449157715 106.67585754394531,-6.083717346191406,2.9395976066589355 106.67585754394531,-6.083723068237305,2.8773155212402344</coordinates>
+            </LineString>
+        </Placemark>
+    </Document>
+</kml>
