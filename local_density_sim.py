@@ -42,7 +42,7 @@ def local_density_latlon(
     others: List[LatLonAlt],
     alt_band_m: float = 500.0,
     R_min_m: float = 20.0,   # 20 m
-    R_max_m: float = 5000.0,  # 5 km
+    R_max_m: float = 3000.0,  # 3 km
     thresholds=(0.05, 0.2, 0.5, 1.5),
 ):
     """Compute local density for one timestep."""

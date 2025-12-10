@@ -55,6 +55,42 @@ def load_csv(path: str) -> pd.DataFrame:
 
     return df
 
+def compute_density_all_aircraft(df: pd.DataFrame):
+    """
+    For each timestamp and each aircraft:
+      - use that aircraft as reference
+      - all others at same time are neighbors
+    Returns one big table with density per aircraft per timestep.
+    """
+    results = []
+
+    for t in sorted(df["timestamp"].unique()):
+        df_t = df[df["timestamp"] == t]
+
+        # loop over each aircraft at this time
+        for _, ref_row in df_t.iterrows():
+            ref_id = ref_row["aircraft_id"]
+            ref = (ref_row["lat"], ref_row["lon"], ref_row["alt"])
+
+            others_df = df_t[df_t["aircraft_id"] != ref_id]
+            others = [
+                (row["lat"], row["lon"], row["alt"])
+                for _, row in others_df.iterrows()
+            ]
+
+            rho, level, R, n = local_density_latlon(ref, others)
+
+            results.append({
+                "timestamp": t,
+                "ref_id": ref_id,
+                "rho": rho,
+                "level": level,
+                "R_m": R,
+                "n_neighbors": n,
+            })
+
+    return pd.DataFrame(results)
+
 # ---------------------------------------------------------
 # 2. SPLIT BY ODD/EVEN ROWS → 2 AIRCRAFT
 # ---------------------------------------------------------
@@ -124,18 +160,17 @@ def compute_density_two_ac(ac1: pd.DataFrame, ac2: pd.DataFrame):
 # 4. MAIN
 # ---------------------------------------------------------
 if __name__ == "__main__":
-    # 1) load your log
-    df = load_csv("logs/tes1.csv")   # adjust path if needed
+    # 1) load full log (any number of aircraft)
+    df = load_csv("logs/tes1.csv")   # path as before
 
-    # 2) split into two aircraft by index
-    ac1, ac2 = split_two_aircraft(df)
+    # 2) compute density for all aircraft
+    density_df = compute_density_all_aircraft(df)
 
-    # 3) compute density for each aircraft
-    density_ac1, density_ac2 = compute_density_two_ac(ac1, ac2)
+    # 3) save to Excel: one sheet per aircraft
+    with pd.ExcelWriter("density_per_aircraft.xlsx") as writer:
+        for ref_id, group in density_df.groupby("ref_id"):
+            sheet_name = str(ref_id)[:31]  # Excel sheet name max 31 chars
+            group.to_excel(writer, sheet_name=sheet_name, index=False)
 
-    # 4) save to Excel, one sheet per aircraft
-    with pd.ExcelWriter("density_two_aircraft.xlsx") as writer:
-        density_ac1.to_excel(writer, sheet_name="Aircraft_1", index=False)
-        density_ac2.to_excel(writer, sheet_name="Aircraft_2", index=False)
+    print("Done. Saved density_per_aircraft.xlsx")
 
-    print("Done. Saved density_two_aircraft.xlsx")
