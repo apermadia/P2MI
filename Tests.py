@@ -14,7 +14,6 @@ save_folder = "logs"
 # Create folder if not exists
 os.makedirs(save_folder, exist_ok=True)
 
-
 UPDATE_RATE_HZ = 2
 PERIOD = 1 / UPDATE_RATE_HZ
 
