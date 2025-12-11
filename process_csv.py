@@ -1,9 +1,12 @@
 import pandas as pd
-from local_density_sim import local_density_latlon  # or comment this out if the function is in the same file
+# or comment this out if the function is in the same file
+from local_density_sim import local_density_latlon
 
 # ---------------------------------------------------------
 # 1. LOAD & SPLIT CSV (your exact format)
 # ---------------------------------------------------------
+
+
 def load_csv(path: str) -> pd.DataFrame:
     """
     Tries to handle both:
@@ -45,7 +48,8 @@ def load_csv(path: str) -> pd.DataFrame:
         df.columns = ["timestamp", "aircraft_id", "lat", "lon", "alt"]
 
     else:
-        raise ValueError(f"Unexpected number of columns in raw CSV: {raw.shape[1]}")
+        raise ValueError(
+            f"Unexpected number of columns in raw CSV: {raw.shape[1]}")
 
     # Convert numeric columns
     df["timestamp"] = df["timestamp"].astype(float)
@@ -54,6 +58,7 @@ def load_csv(path: str) -> pd.DataFrame:
     df["alt"] = df["alt"].astype(float)
 
     return df
+
 
 def compute_density_all_aircraft(df: pd.DataFrame):
     """
@@ -94,6 +99,8 @@ def compute_density_all_aircraft(df: pd.DataFrame):
 # ---------------------------------------------------------
 # 2. SPLIT BY ODD/EVEN ROWS → 2 AIRCRAFT
 # ---------------------------------------------------------
+
+
 def split_two_aircraft(df: pd.DataFrame):
     """
     Assumes rows alternate:
@@ -110,13 +117,16 @@ def split_two_aircraft(df: pd.DataFrame):
 # ---------------------------------------------------------
 # 3. DENSITY FOR EACH AIRCRAFT OVER TIME
 # ---------------------------------------------------------
+
+
 def compute_density_two_ac(ac1: pd.DataFrame, ac2: pd.DataFrame):
     """
     For each timestep i:
       - ac1[i] is reference 1, ac2[i] is its only neighbour
       - ac2[i] is reference 2, ac1[i] is its only neighbour
     """
-    assert len(ac1) == len(ac2), "Both aircraft must have same number of timesteps"
+    assert len(ac1) == len(
+        ac2), "Both aircraft must have same number of timesteps"
 
     results_1 = []
     results_2 = []
@@ -156,6 +166,7 @@ def compute_density_two_ac(ac1: pd.DataFrame, ac2: pd.DataFrame):
     df2 = pd.DataFrame(results_2)
     return df1, df2
 
+
 # ---------------------------------------------------------
 # 4. MAIN
 # ---------------------------------------------------------
@@ -167,10 +178,9 @@ if __name__ == "__main__":
     density_df = compute_density_all_aircraft(df)
 
     # 3) save to Excel: one sheet per aircraft
-    with pd.ExcelWriter("density_per_aircraft.xlsx") as writer:
+    with pd.ExcelWriter("density_per_aircraft2.xlsx") as writer:
         for ref_id, group in density_df.groupby("ref_id"):
             sheet_name = str(ref_id)[:31]  # Excel sheet name max 31 chars
             group.to_excel(writer, sheet_name=sheet_name, index=False)
 
     print("Done. Saved density_per_aircraft.xlsx")
-
