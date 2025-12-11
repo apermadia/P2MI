@@ -55,6 +55,12 @@ def load_csv(path: str) -> pd.DataFrame:
 
     return df
 
+df = load_csv("logs/tes1.csv")
+
+# keep only SD05 and LNI204
+pair_ids = ["SD05", "LNI204"]
+df_pair = df[df["aircraft_id"].isin(pair_ids)].copy()
+
 def compute_density_all_aircraft(df: pd.DataFrame):
     """
     For each timestamp and each aircraft:
@@ -90,6 +96,8 @@ def compute_density_all_aircraft(df: pd.DataFrame):
             })
 
     return pd.DataFrame(results)
+
+density_pair = compute_density_all_aircraft(df_pair)
 
 # ---------------------------------------------------------
 # 2. SPLIT BY ODD/EVEN ROWS → 2 AIRCRAFT
@@ -167,10 +175,11 @@ if __name__ == "__main__":
     density_df = compute_density_all_aircraft(df)
 
     # 3) save to Excel: one sheet per aircraft
-    with pd.ExcelWriter("density_per_aircraft.xlsx") as writer:
-        for ref_id, group in density_df.groupby("ref_id"):
-            sheet_name = str(ref_id)[:31]  # Excel sheet name max 31 chars
-            group.to_excel(writer, sheet_name=sheet_name, index=False)
 
-    print("Done. Saved density_per_aircraft.xlsx")
+with pd.ExcelWriter("density_SD05_LNI204.xlsx") as writer:
+    for ref_id, group in density_pair.groupby("ref_id"):
+        sheet_name = str(ref_id)[:31]
+        group.to_excel(writer, sheet_name=sheet_name, index=False)
+
+    print("Done. Saved density_SD05_LNI204.xlsx")
 
